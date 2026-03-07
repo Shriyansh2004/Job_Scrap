@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+SQLAlchemy
+psycopg[binary]
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+pydantic[email]
+alembic
+beautifulsoup4
+requests
+lxml
