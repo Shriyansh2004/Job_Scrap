@@ -1,5 +1,6 @@
 import os
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import List
 
@@ -13,12 +14,21 @@ import models
 import schemas
 from auth import create_access_token, get_current_user, get_password_hash, verify_password
 from cloudinary_config import upload_image, upload_resume, delete_file
-from database import Base, engine, get_db
+from database import Base, get_db, get_engine
 from scrapers import LinkedInScraper, NaukriScraper, InternshalaScraper, UnstopScraper
 
-Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Job Scraper Platform")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for startup and shutdown."""
+    # Startup: Create tables if they don't exist
+    engine = get_engine()
+    Base.metadata.create_all(bind=engine)
+    yield
+    # Shutdown: cleanup if needed
+
+
+app = FastAPI(title="Job Scraper Platform", lifespan=lifespan)
 
 # Get allowed origins from environment variable (comma-separated)
 # Default to localhost for development
