@@ -9,6 +9,7 @@ type User = {
   location?: string | null
   bio?: string | null
   image_url?: string | null
+  resume_url?: string | null
 }
 
 export const ProfilePage = () => {
@@ -17,13 +18,16 @@ export const ProfilePage = () => {
   const [location, setLocation] = useState('')
   const [bio, setBio] = useState('')
   const [imageUrl, setImageUrl] = useState('')
+  const [resumeUrl, setResumeUrl] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [selectedResume, setSelectedResume] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const resumeInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -34,6 +38,7 @@ export const ProfilePage = () => {
         setLocation(data.location || '')
         setBio(data.bio || '')
         setImageUrl(data.image_url || '')
+        setResumeUrl(data.resume_url || '')
       } catch (err) {
         setError('Could not load profile.')
       } finally {
@@ -72,6 +77,24 @@ export const ProfilePage = () => {
     }
   }
 
+  const handleResumeChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate file type - only PDF
+      if (file.type !== 'application/pdf') {
+        setError('Please select a PDF file.')
+        return
+      }
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('Resume size must be less than 10MB.')
+        return
+      }
+      setSelectedResume(file)
+      setError(null)
+    }
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!user) return
@@ -81,7 +104,7 @@ export const ProfilePage = () => {
     try {
       let finalImageUrl = imageUrl
 
-      // If a file is selected, upload it first
+      // If an image file is selected, upload it first
       if (selectedFile) {
         const formData = new FormData()
         formData.append('file', selectedFile)
@@ -99,7 +122,7 @@ export const ProfilePage = () => {
         image_url: finalImageUrl || null,
       })
       setUser(data)
-      setImageUrl(finalImageUrl || '')  // Update local state with new image URL
+      setImageUrl(finalImageUrl || '')
       setSelectedFile(null)
       // Reset file input
       if (fileInputRef.current) {
@@ -108,6 +131,53 @@ export const ProfilePage = () => {
       setSuccess('Profile updated successfully.')
     } catch (err) {
       setError('Could not update profile.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleUploadResume = async () => {
+    if (!selectedResume) return
+    setSaving(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const formData = new FormData()
+      formData.append('file', selectedResume)
+
+      const { data: uploadData } = await api.post<{ url: string }>('/users/me/upload-resume', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      
+      setResumeUrl(uploadData.url)
+      setSelectedResume(null)
+      if (resumeInputRef.current) {
+        resumeInputRef.current.value = ''
+      }
+      setSuccess('Resume uploaded successfully.')
+    } catch (err) {
+      setError('Could not upload resume.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteResume = async () => {
+    if (!user) return
+    setSaving(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const { data } = await api.delete<User>('/users/me/resume')
+      setUser(data)
+      setResumeUrl('')
+      setSelectedResume(null)
+      if (resumeInputRef.current) {
+        resumeInputRef.current.value = ''
+      }
+      setSuccess('Resume removed.')
+    } catch (err) {
+      setError('Could not delete resume.')
     } finally {
       setSaving(false)
     }
@@ -134,10 +204,17 @@ export const ProfilePage = () => {
     }
   }
 
-  const handleCancelUpload = () => {
+  const handleCancelImageUpload = () => {
     setSelectedFile(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
+    }
+  }
+
+  const handleCancelResumeUpload = () => {
+    setSelectedResume(null)
+    if (resumeInputRef.current) {
+      resumeInputRef.current.value = ''
     }
   }
 
@@ -151,80 +228,155 @@ export const ProfilePage = () => {
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg shadow-black/40">
-        <h2 className="mb-4 text-lg font-semibold text-slate-100">
-          Profile details
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium uppercase tracking-wide text-slate-400">
-              Full name
-            </label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none ring-sky-500/0 transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/40"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium uppercase tracking-wide text-slate-400">
-              Location
-            </label>
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none ring-sky-500/0 transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/40"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium uppercase tracking-wide text-slate-400">
-              Bio
-            </label>
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              rows={4}
-              className="w-full resize-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none ring-sky-500/0 transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/40"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium uppercase tracking-wide text-slate-400">
-              Profile image
-            </label>
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*"
-              onChange={handleFileChange}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 file:mr-3 file:cursor-pointer file:rounded-l-lg file:border-0 file:bg-sky-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white file:transition file:hover:bg-sky-400"
-            />
-            {selectedFile && (
-              <div className="flex items-center gap-2 mt-2">
-                <p className="text-xs text-slate-400">Selected: {selectedFile.name}</p>
-                <button
-                  type="button"
-                  onClick={handleCancelUpload}
-                  className="text-xs text-red-400 hover:text-red-300"
-                >
-                  Cancel
-                </button>
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg shadow-black/40">
+          <h2 className="mb-4 text-lg font-semibold text-slate-100">
+            Profile details
+          </h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium uppercase tracking-wide text-slate-400">
+                Full name
+              </label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none ring-sky-500/0 transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/40"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium uppercase tracking-wide text-slate-400">
+                Location
+              </label>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none ring-sky-500/0 transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/40"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium uppercase tracking-wide text-slate-400">
+                Bio
+              </label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={4}
+                className="w-full resize-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none ring-sky-500/0 transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/40"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium uppercase tracking-wide text-slate-400">
+                Profile image
+              </label>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={handleFileChange}
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 file:mr-3 file:cursor-pointer file:rounded-l-lg file:border-0 file:bg-sky-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white file:transition file:hover:bg-sky-400"
+              />
+              {selectedFile && (
+                <div className="flex items-center gap-2 mt-2">
+                  <p className="text-xs text-slate-400">Selected: {selectedFile.name}</p>
+                  <button
+                    type="button"
+                    onClick={handleCancelImageUpload}
+                    className="text-xs text-red-400 hover:text-red-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            {success && <p className="text-sm text-emerald-400">{success}</p>}
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="mt-2 inline-flex items-center justify-center rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-sky-500/30 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {saving ? 'Saving...' : 'Save changes'}
+            </button>
+          </form>
+        </div>
+
+        {/* Resume Upload Section */}
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg shadow-black/40">
+          <h2 className="mb-4 text-lg font-semibold text-slate-100">
+            Resume
+          </h2>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium uppercase tracking-wide text-slate-400">
+                Upload your resume (PDF only, max 10MB)
+              </label>
+              <input
+                type="file"
+                ref={resumeInputRef}
+                accept=".pdf,application/pdf"
+                onChange={handleResumeChange}
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 file:mr-3 file:cursor-pointer file:rounded-l-lg file:border-0 file:bg-violet-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white file:transition file:hover:bg-violet-400"
+              />
+              {selectedResume && (
+                <div className="flex items-center gap-2 mt-2">
+                  <p className="text-xs text-slate-400">Selected: {selectedResume.name}</p>
+                  <button
+                    type="button"
+                    onClick={handleCancelResumeUpload}
+                    className="text-xs text-red-400 hover:text-red-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {selectedResume && (
+              <button
+                type="button"
+                onClick={handleUploadResume}
+                disabled={saving}
+                className="inline-flex items-center justify-center rounded-lg bg-violet-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-violet-500/30 transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {saving ? 'Uploading...' : 'Upload Resume'}
+              </button>
+            )}
+
+            {resumeUrl && !selectedResume && (
+              <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800 p-3">
+                <div className="flex items-center gap-2">
+                  <svg className="h-5 w-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="text-sm text-slate-300">Resume uploaded</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={resumeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-sky-400 hover:text-sky-300"
+                  >
+                    View
+                  </a>
+                  <button
+                    type="button"
+                    onClick={handleDeleteResume}
+                    disabled={saving}
+                    className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             )}
           </div>
-
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          {success && <p className="text-sm text-emerald-400">{success}</p>}
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="mt-2 inline-flex items-center justify-center rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-sky-500/30 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {saving ? 'Saving...' : 'Save changes'}
-          </button>
-        </form>
+        </div>
       </div>
 
       <div className="space-y-4">

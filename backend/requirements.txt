@@ -10,3 +10,4 @@ alembic
 beautifulsoup4
 requests
 lxml
+cloudinary

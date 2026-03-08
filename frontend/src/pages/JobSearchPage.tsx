@@ -8,11 +8,15 @@ type Job = {
   location: string | null
   platform: string
   job_link: string
+  experience?: string | null
 }
+
+type ExperienceFilter = 'all' | 'fresher' | '0-1' | '1-3' | '3-5' | '5+'
 
 export const JobSearchPage = () => {
   const [keyword, setKeyword] = useState('Software Engineer')
   const [location, setLocation] = useState('Remote')
+  const [experience, setExperience] = useState<ExperienceFilter>('all')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<Job[]>([])
@@ -30,6 +34,48 @@ export const JobSearchPage = () => {
       setLoading(false)
     }
   }
+
+  const filteredResults = results.filter((job) => {
+    if (experience === 'all') return true
+    
+    // Check if job title contains experience-related keywords
+    const titleLower = job.job_title.toLowerCase()
+    
+    switch (experience) {
+      case 'fresher':
+        return titleLower.includes('fresher') || 
+               titleLower.includes('entry') || 
+               titleLower.includes('junior') ||
+               titleLower.includes('intern') ||
+               titleLower.includes('graduate')
+      case '0-1':
+        return titleLower.includes('fresher') || 
+               titleLower.includes('entry') || 
+               titleLower.includes('junior') ||
+               titleLower.includes('intern') ||
+               titleLower.includes('graduate') ||
+               titleLower.includes('0-1') ||
+               titleLower.includes('0-2')
+      case '1-3':
+        return titleLower.includes('1-3') ||
+               titleLower.includes('2-3') ||
+               titleLower.includes('mid') ||
+               titleLower.includes('associate')
+      case '3-5':
+        return titleLower.includes('3-5') ||
+               titleLower.includes('4-5') ||
+               titleLower.includes('senior') ||
+               titleLower.includes('lead')
+      case '5+':
+        return titleLower.includes('5+') ||
+               titleLower.includes('senior') ||
+               titleLower.includes('lead') ||
+               titleLower.includes('principal') ||
+               titleLower.includes('manager')
+      default:
+        return true
+    }
+  })
 
   const handleApply = async (job: Job) => {
     window.open(job.job_link, '_blank', 'noopener,noreferrer')
@@ -81,6 +127,23 @@ export const JobSearchPage = () => {
               placeholder="e.g. Bengaluru, Remote"
             />
           </div>
+          <div className="w-full space-y-1.5 md:w-40">
+            <label className="block text-xs font-medium uppercase tracking-wide text-slate-400">
+              Experience
+            </label>
+            <select
+              value={experience}
+              onChange={(e) => setExperience(e.target.value as ExperienceFilter)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none ring-sky-500/0 transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/40"
+            >
+              <option value="all">All</option>
+              <option value="fresher">Fresher</option>
+              <option value="0-1">0-1 Years</option>
+              <option value="1-3">1-3 Years</option>
+              <option value="3-5">3-5 Years</option>
+              <option value="5+">5+ Years</option>
+            </select>
+          </div>
           <button
             type="submit"
             disabled={loading}
@@ -96,7 +159,7 @@ export const JobSearchPage = () => {
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-sm font-semibold text-slate-100">Job results</h3>
           <p className="text-xs text-slate-400">
-            Showing {results.length} jobs from LinkedIn, Naukri, Internshala &amp;
+            Showing {filteredResults.length} jobs from LinkedIn, Naukri, Internshala &amp;
             Unstop (demo data).
           </p>
         </div>
@@ -113,7 +176,7 @@ export const JobSearchPage = () => {
               </tr>
             </thead>
             <tbody>
-              {results.map((job, idx) => (
+              {filteredResults.map((job, idx) => (
                 <tr
                   key={idx}
                   className="border-b border-slate-800/60 hover:bg-slate-800/40"
@@ -146,13 +209,15 @@ export const JobSearchPage = () => {
                   </td>
                 </tr>
               ))}
-              {results.length === 0 && (
+              {filteredResults.length === 0 && (
                 <tr>
                   <td
                     colSpan={6}
                     className="px-3 py-6 text-center text-sm text-slate-500"
                   >
-                    No jobs yet. Try searching with a keyword and location.
+                    {results.length === 0 
+                      ? 'No jobs yet. Try searching with a keyword and location.'
+                      : 'No jobs match the selected experience filter.'}
                   </td>
                 </tr>
               )}

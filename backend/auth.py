@@ -12,7 +12,7 @@ import models
 import schemas
 from database import get_db
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "CHANGE_ME_TO_A_SECURE_RANDOM_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "CHANGE_ME_TO_A_SECURE_RANDOM_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 

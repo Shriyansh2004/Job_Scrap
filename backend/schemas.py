@@ -10,6 +10,7 @@ class UserBase(BaseModel):
     location: Optional[str] = None
     bio: Optional[str] = None
     image_url: Optional[str] = None
+    resume_url: Optional[str] = None
 
 
 class UserCreate(UserBase):
@@ -21,6 +22,7 @@ class UserUpdate(BaseModel):
     location: Optional[str] = None
     bio: Optional[str] = None
     image_url: Optional[str] = None
+    resume_url: Optional[str] = None
 
 
 class UserOut(UserBase):

@@ -1,60 +1,80 @@
-# Job Scraper Platform - Implementation Plan
+# Deployment Tasks - Backend on Render
 
-## Task: Improve the job scraper with actual scraping logic
+## ✅ Completed Tasks
 
-### Information Gathered:
-- Current backend uses mock/demo data in `main.py`
-- Frontend sends keyword and location to `/jobs/scrape` endpoint
-- Need to implement real scraping for: LinkedIn, Naukri, Internshala, Unstop
-- Current response model: `JobSearchResponse` with `results: List[JobOut]`
+- [x] 1. Update requirements.txt - Added Cloudinary SDK
+- [x] 2. Create Cloudinary configuration module (backend/cloudinary_config.py)
+- [x] 3. Update main.py - Integrated Cloudinary for file uploads
+- [x] 4. Create .env.example template
+- [x] 5. Update auth.py - Fixed SECRET_KEY environment variable name
+- [x] 6. Create Render deployment configuration (render.yaml)
+- [x] 7. Update frontend API to use environment variable for backend URL
+- [x] 8. Create frontend .env.example template
 
-### Plan:
-1. ✅ **Create scraper modules** for each platform:
-   - ✅ `backend/scrapers/linkedin_scraper.py`
-   - ✅ `backend/scrapers/naukri_scraper.py`
-   - ✅ `backend/scrapers/internshala_scraper.py`
-   - ✅ `backend/scrapers/unstop_scraper.py`
+## 🚀 Deployment Steps
 
-2. ✅ **Create base scraper class** in `backend/scrapers/base.py`:
-   - Common methods for HTTP requests
-   - Rate limiting and error handling
-   - Response parsing
+### Step 1: Set up Cloudinary
+1. Go to [Cloudinary](https://cloudinary.com/) and create a free account
+2. Get your Cloud Name, API Key, and API Secret from the Dashboard
+3. Note these down for later
 
-3. ✅ **Update `backend/requirements.txt`** with new dependencies:
-   - beautifulsoup4
-   - requests
-   - lxml
+### Step 2: Deploy Backend on Render
 
-4. ✅ **Update `backend/main.py`**:
-   - Import scrapers
-   - Replace mock data with actual scraper calls
+**Option A: Using render.yaml (Recommended)**
+1. Push your code to GitHub
+2. Go to [Render Dashboard](https://dashboard.render.com/)
+3. Click "New" → "Blueprint"
+4. Select your GitHub repository
+5. Select the render.yaml file
+6. Fill in the environment variables:
+   - `CLOUDINARY_CLOUD_NAME`: Your Cloudinary cloud name
+   - `CLOUDINARY_API_KEY`: Your Cloudinary API key
+   - `CLOUDINARY_API_SECRET`: Your Cloudinary API secret
+   - `ALLOWED_ORIGINS`: Your frontend URL (e.g., https://your-app.vercel.app)
+7. Click "Apply"
 
-5. ✅ **Install dependencies**
+**Option B: Manual Setup**
+1. Go to [Render Dashboard](https://dashboard.render.com/)
+2. Click "New" → "Web Service"
+3. Connect your GitHub repository
+4. Configure:
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+5. Add Environment Variables:
+   - `DATABASE_URL`: Will be auto-filled when you create a PostgreSQL database
+   - `SECRET_KEY`: Generate using `python -c "import secrets; print(secrets.token_hex(32))"`
+   - `BACKEND_URL`: Your Render backend URL (e.g., https://job-scraper-backend.onrender.com)
+   - `ALLOWED_ORIGINS`: Your frontend URL
+   - `CLOUDINARY_CLOUD_NAME`: Your Cloudinary cloud name
+   - `CLOUDINARY_API_KEY`: Your Cloudinary API key
+   - `CLOUDINARY_API_SECRET`: Your Cloudinary API secret
+6. Click "Create Web Service"
 
-### Status: COMPLETED ✅
+### Step 3: Deploy Frontend
+1. Go to [Vercel](https://vercel.com/) or [Netlify](https://www.netlify.com/)
+2. Connect your frontend GitHub repository
+3. Add environment variable:
+   - `VITE_API_URL`: Your Render backend URL (e.g., https://job-scraper-backend.onrender.com)
+4. Deploy
 
----
+### Step 4: Update CORS
+After deploying frontend, update the `ALLOWED_ORIGINS` environment variable in Render to include your frontend URL.
 
-## Task: Allow profile image upload from device folder
+## 🔧 Environment Variables Reference
 
-### Changes Made:
-1. Frontend (`ProfilePage.tsx`):
-   - Changed from URL input to file picker
-   - Added file validation (images only, max 5MB)
-   - Added image preview before saving
-   - Shows selected file name with cancel option
-   - Fixed state update after saving
+### Backend (.env)
+```
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
+SECRET_KEY=your-secure-random-key
+BACKEND_URL=https://your-backend.onrender.com
+ALLOWED_ORIGINS=https://your-frontend.vercel.app
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+```
 
-2. Backend (`main.py`):
-   - Added `/users/me/upload-image` endpoint
-   - Creates `uploads` folder for local storage
-   - Serves images via `/uploads/` static route
-   - Returns full URL including backend host
-   - Delete endpoint removes actual image file
-
-### Status: COMPLETED ✅
-
-### To Run:
-- Backend: `cd backend && uvicorn main:app --reload`
-- Frontend: `cd frontend && npm run dev`
+### Frontend (.env)
+```
+VITE_API_URL=https://your-backend.onrender.com
+```
 

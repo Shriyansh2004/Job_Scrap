@@ -15,6 +15,7 @@ class User(Base):
     location = Column(String, nullable=True)
     bio = Column(String, nullable=True)
     image_url = Column(String, nullable=True)
+    resume_url = Column(String, nullable=True)
     hashed_password = Column(String, nullable=False)
 
     applications = relationship("JobApplication", back_populates="user")
