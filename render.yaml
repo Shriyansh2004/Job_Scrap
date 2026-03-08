@@ -20,12 +20,6 @@ services:
       - key: ALLOWED_ORIGINS
         # Update this with your frontend URL after deployment
         value: "https://your-frontend.vercel.app"
-      - key: CLOUDINARY_CLOUD_NAME
-        sync: false
-      - key: CLOUDINARY_API_KEY
-        sync: false
-      - key: CLOUDINARY_API_SECRET
-        sync: false
 
 databases:
   - name: job_scraper_db

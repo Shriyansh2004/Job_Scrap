@@ -129,8 +129,9 @@ export const ProfilePage = () => {
         fileInputRef.current.value = ''
       }
       setSuccess('Profile updated successfully.')
-    } catch (err) {
-      setError('Could not update profile.')
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || 'Could not update profile.'
+      setError(errorMessage)
     } finally {
       setSaving(false)
     }
@@ -155,8 +156,9 @@ export const ProfilePage = () => {
         resumeInputRef.current.value = ''
       }
       setSuccess('Resume uploaded successfully.')
-    } catch (err) {
-      setError('Could not upload resume.')
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || 'Could not upload resume.'
+      setError(errorMessage)
     } finally {
       setSaving(false)
     }

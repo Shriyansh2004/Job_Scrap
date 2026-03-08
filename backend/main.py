@@ -7,13 +7,15 @@ from typing import List
 from fastapi import Depends, FastAPI, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 import auth
 import models
 import schemas
 from auth import create_access_token, get_current_user, get_password_hash, verify_password
-from cloudinary_config import upload_image, upload_resume, delete_file
+from cloudinary_config import save_image, save_resume, delete_file, UPLOADS_DIR
 from database import Base, get_db, get_engine
 from scrapers import LinkedInScraper, NaukriScraper, InternshalaScraper, UnstopScraper
 
@@ -29,6 +31,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Job Scraper Platform", lifespan=lifespan)
+
+# Mount the uploads directory to serve static files
+app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 # Get allowed origins from environment variable (comma-separated)
 # Default to localhost for development
@@ -103,8 +108,8 @@ def delete_profile_image(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    # Delete the image file from Cloudinary if it's a Cloudinary URL
-    if current_user.image_url and "cloudinary.com" in current_user.image_url:
+    # Delete the image file if it exists
+    if current_user.image_url:
         delete_file(current_user.image_url)
     
     current_user.image_url = None
@@ -120,7 +125,7 @@ async def upload_profile_image(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """Upload a profile image to Cloudinary."""
+    """Upload a profile image."""
     # Validate file type
     if not file.content_type.startswith("image/"):
         raise HTTPException(
@@ -145,8 +150,12 @@ async def upload_profile_image(
     # Read file content
     content = await file.read()
     
-    # Upload to Cloudinary
-    url = upload_image(content, file_extension)
+    # Delete old image if exists
+    if current_user.image_url:
+        delete_file(current_user.image_url)
+    
+    # Save the image locally
+    url = save_image(content, file_extension)
     
     return {"url": url}
 
@@ -157,7 +166,7 @@ async def upload_resume_endpoint(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """Upload a resume (PDF) to Cloudinary."""
+    """Upload a resume (PDF)."""
     # Validate file type - only PDF allowed
     allowed_types = ["application/pdf"]
     if file.content_type not in allowed_types:
@@ -180,12 +189,12 @@ async def upload_resume_endpoint(
     # Read file content
     content = await file.read()
     
-    # Upload to Cloudinary
-    url = upload_resume(content)
-    
-    # Delete old resume if exists (Cloudinary URL)
-    if current_user.resume_url and "cloudinary.com" in current_user.resume_url:
+    # Delete old resume if exists
+    if current_user.resume_url:
         delete_file(current_user.resume_url)
+    
+    # Save the resume locally
+    url = save_resume(content)
     
     # Update user's resume_url
     current_user.resume_url = url
@@ -201,8 +210,8 @@ def delete_resume(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    # Delete the resume file from Cloudinary if it's a Cloudinary URL
-    if current_user.resume_url and "cloudinary.com" in current_user.resume_url:
+    # Delete the resume file if it exists
+    if current_user.resume_url:
         delete_file(current_user.resume_url)
     
     current_user.resume_url = None

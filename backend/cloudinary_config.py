@@ -1,71 +1,81 @@
 import os
 import uuid
+from pathlib import Path
+from urllib.parse import urljoin
 
-import cloudinary
-import cloudinary.uploader
+# Get the base directory and uploads path
+BASE_DIR = Path(__file__).parent
+UPLOADS_DIR = BASE_DIR / "uploads"
+UPLOADS_DIR.mkdir(exist_ok=True)
 
-# Configure Cloudinary with credentials from environment variables
-def configure_cloudinary():
-    cloudinary.config(
-        cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-        api_key=os.getenv("CLOUDINARY_API_KEY"),
-        api_secret=os.getenv("CLOUDINARY_API_SECRET"),
-        secure=True
-    )
+# Ensure the directories for images and resumes exist
+IMAGES_DIR = UPLOADS_DIR / "images"
+IMAGES_DIR.mkdir(exist_ok=True)
 
-def upload_image(file_content: bytes, file_extension: str = "jpg") -> str:
-    """Upload an image to Cloudinary and return the URL."""
-    configure_cloudinary()
-    
-    unique_filename = f"job_scraper/{uuid.uuid4()}.{file_extension}"
-    
-    result = cloudinary.uploader.upload(
-        file_content,
-        public_id=unique_filename.replace(f".{file_extension}", ""),
-        resource_type="image",
-        folder="job_scraper"
-    )
-    
-    return result["secure_url"]
+RESUMES_DIR = UPLOADS_DIR / "resumes"
+RESUMES_DIR.mkdir(exist_ok=True)
 
-def upload_resume(file_content: bytes) -> str:
-    """Upload a resume (PDF) to Cloudinary and return the URL."""
-    configure_cloudinary()
+
+def get_base_url() -> str:
+    """Get the base URL for serving static files."""
+    # Try to get from environment variable, otherwise use default
+    # Check BACKEND_URL first (used in render.yaml), then API_BASE_URL
+    return os.getenv("BACKEND_URL") or os.getenv("API_BASE_URL", "http://localhost:8000")
+
+
+def save_image(file_content: bytes, file_extension: str = "jpg") -> str:
+    """Save an image locally and return the full URL."""
+    unique_filename = f"{uuid.uuid4()}.{file_extension}"
+    file_path = IMAGES_DIR / unique_filename
     
-    unique_filename = f"job_scraper/resumes/{uuid.uuid4()}.pdf"
+    with open(file_path, "wb") as f:
+        f.write(file_content)
     
-    result = cloudinary.uploader.upload(
-        file_content,
-        public_id=unique_filename.replace(".pdf", ""),
-        resource_type="raw",
-        folder="job_scraper/resumes"
-    )
+    # Return full URL with backend base URL
+    base_url = get_base_url()
+    return f"{base_url}/uploads/images/{unique_filename}"
+
+
+def save_resume(file_content: bytes) -> str:
+    """Save a resume locally and return the full URL."""
+    unique_filename = f"{uuid.uuid4()}.pdf"
+    file_path = RESUMES_DIR / unique_filename
     
-    return result["secure_url"]
+    with open(file_path, "wb") as f:
+        f.write(file_content)
+    
+    # Return full URL with backend base URL
+    base_url = get_base_url()
+    return f"{base_url}/uploads/resumes/{unique_filename}"
+
 
 def delete_file(url: str) -> bool:
-    """Delete a file from Cloudinary based on its URL."""
-    configure_cloudinary()
-    
-    # Extract public ID from URL
-    # Cloudinary URLs format: https://res.cloudinary.com/<cloud_name>/<resource_type>/<version>/<folder>/<public_id>
+    """Delete a local file based on its URL."""
     try:
-        # Get the public ID from the URL
-        parts = url.split("/")
-        # Find the job_scraper folder position
-        if "job_scraper" in parts:
-            idx = parts.index("job_scraper")
-            # Get everything from job_scraper onwards
-            public_id_parts = parts[idx:]
-            # Remove extension if present
-            if public_id_parts[-1]:
-                public_id_parts[-1] = public_id_parts[-1].rsplit(".", 1)[0]
-            public_id = "/".join(public_id_parts)
+        # Extract filename from URL
+        # Handle both relative URLs (/uploads/...) and full URLs (http://.../uploads/...)
+        filename = None
+        if url.startswith("/uploads/"):
+            filename = url.split("/")[-1]
+        elif "/uploads/" in url:
+            # Full URL - extract path and get filename
+            path_part = url.split("/uploads/")[-1]
+            filename = path_part.split("/")[-1]
+        
+        if filename:
+            # Determine which directory based on the URL
+            if "/images/" in url:
+                file_path = IMAGES_DIR / filename
+            elif "/resumes/" in url:
+                file_path = RESUMES_DIR / filename
+            else:
+                return False
             
-            cloudinary.uploader.destroy(public_id)
-            return True
+            if file_path.exists():
+                file_path.unlink()
+                return True
     except Exception as e:
-        print(f"Error deleting file from Cloudinary: {e}")
+        print(f"Error deleting local file: {e}")
         return False
     
     return False
