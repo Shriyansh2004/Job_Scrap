@@ -2,6 +2,7 @@ services:
   - type: web
     name: job-scraper-backend
     env: python
+    rootDir: backend
     region: oregon
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
@@ -12,11 +13,6 @@ services:
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
-      - key: BACKEND_URL
-        fromService:
-          type: web
-          name: job-scraper-backend
-          property: url
       - key: ALLOWED_ORIGINS
         # Update this with your frontend URL after deployment
         value: "https://anubhabjob.netlify.app/"

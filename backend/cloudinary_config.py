@@ -19,8 +19,8 @@ RESUMES_DIR.mkdir(exist_ok=True)
 def get_base_url() -> str:
     """Get the base URL for serving static files."""
     # Try to get from environment variable, otherwise use default
-    # Check BACKEND_URL first (used in render.yaml), then API_BASE_URL
-    return os.getenv("BACKEND_URL") or os.getenv("API_BASE_URL", "http://localhost:8000")
+    # Check RENDER_EXTERNAL_URL first (provided by Render natively), then BACKEND_URL, then API_BASE_URL
+    return os.getenv("RENDER_EXTERNAL_URL") or os.getenv("BACKEND_URL") or os.getenv("API_BASE_URL", "http://localhost:8000")
 
 
 def save_image(file_content: bytes, file_extension: str = "jpg") -> str:
