@@ -15,7 +15,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_ORIGINS
-        value: "https://fastjobscraper.netlify.app"
+        value: "https://fastjobscraper.netlify.app/jobs"
 
 databases:
   - name: job_scraper_db
