@@ -1,3 +1,4 @@
+
 import { Navigate, Outlet } from 'react-router-dom'
 import { getToken } from '../lib/auth'
 
@@ -8,6 +9,8 @@ export const AuthLayout = () => {
     return <Navigate to="/jobs" replace />
   }
 
+  // Since LoginPage and SignupPage now have their own full-page designs,
+  // this layout is no longer used but kept for compatibility
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-100">
       <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/60 p-8 shadow-2xl shadow-black/40 backdrop-blur">

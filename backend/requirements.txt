@@ -13,3 +13,5 @@ requests
 lxml
 cloudinary
 python-dotenv
+pdfminer.six
+python-docx

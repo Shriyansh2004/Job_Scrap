@@ -16,6 +16,7 @@ class User(Base):
     bio = Column(String, nullable=True)
     image_url = Column(String, nullable=True)
     resume_url = Column(String, nullable=True)
+    skills = Column(String, nullable=True)  # Comma-separated skills from resume parser
     hashed_password = Column(String, nullable=False)
 
     applications = relationship("JobApplication", back_populates="user")

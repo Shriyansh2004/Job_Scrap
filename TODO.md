@@ -11,6 +11,36 @@
 - [x] 7. Update frontend API to use environment variable for backend URL
 - [x] 8. Create frontend .env.example template
 
+## 🚀 AI Resume Parser Feature
+
+### ✅ Implementation Complete
+
+- [x] 1. Added pyresparser and nltk to requirements.txt
+- [x] 2. Created backend/resume_parser.py - AI resume parsing module
+- [x] 3. Added ResumeParseResponse and ResumeUpdateRequest schemas
+- [x] 4. Added skills field to User model
+- [x] 5. Added /resume/parse endpoint in main.py
+- [x] 6. Added /resume/update-profile endpoint in main.py
+- [x] 7. Updated ProfilePage.tsx with AI Resume Parser UI
+
+### 📦 Dependencies Installed
+- pdfminer.six - PDF text extraction
+- python-docx - DOCX text extraction
+
+### 🔧 How to Install
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+### 🎯 Feature Usage
+1. Go to Profile page
+2. Find "AI Resume Parser" section
+3. Upload PDF or DOCX resume
+4. Click "Parse Resume with AI"
+5. Review extracted data (skills, experience, education, etc.)
+6. Click "Apply to Profile" to save skills to your profile
+
 ## 🚀 Deployment Steps
 
 ### Step 1: Set up Cloudinary

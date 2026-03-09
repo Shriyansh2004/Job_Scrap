@@ -18,6 +18,7 @@ from auth import create_access_token, get_current_user, get_password_hash, verif
 from cloudinary_config import save_image, save_resume, delete_file, UPLOADS_DIR
 from database import Base, get_db, get_engine
 from scrapers import LinkedInScraper, NaukriScraper, InternshalaScraper, UnstopScraper
+from resume_parser import parse_resume
 
 
 @asynccontextmanager
@@ -306,4 +307,105 @@ def list_my_applications(
         .all()
     )
     return apps
+
+
+# ==================== AI Resume Parser Endpoints ====================
+
+@app.post("/resume/parse", response_model=schemas.ResumeParseResponse)
+async def parse_resume_endpoint(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Parse a resume (PDF) and extract information using AI.
+    Supported formats: PDF, DOCX
+    """
+    # Debug: print file info
+    print(f"Received file: {file.filename}, content_type: {file.content_type}")
+    
+    # Validate file type
+    allowed_types = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File must be PDF or DOCX format. Received: {file.content_type}"
+        )
+    
+    # Validate file size (max 10MB)
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+    
+    print(f"File size: {file_size} bytes")
+    
+    if file_size > 10 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size must be less than 10MB"
+        )
+    
+    if file_size < 100:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File is too small to be a valid resume"
+        )
+    
+    # Read file content
+    content = await file.read()
+    print(f"Content read: {len(content)} bytes")
+    
+    try:
+        # Parse the resume
+        parsed_data = parse_resume(content, file.filename or "resume.pdf")
+        
+        # Debug: print what we got
+        print(f"Parsed data: {parsed_data}")
+        
+        # Allow returning data even without name (some resumes may not have clear name)
+        # Just need some meaningful data (skills or email or phone)
+        has_meaningful_data = (
+            parsed_data.get("email") or 
+            parsed_data.get("mobile_number") or 
+            parsed_data.get("skills") or
+            parsed_data.get("experience") or
+            parsed_data.get("education")
+        )
+        
+        if not has_meaningful_data:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Could not extract meaningful data from the resume. Please ensure it's a valid resume file with clear text content."
+            )
+        
+        return schemas.ResumeParseResponse(**parsed_data)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Resume parsing error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error parsing resume: {str(e)}"
+        )
+
+
+@app.put("/resume/update-profile", response_model=schemas.UserOut)
+def update_profile_with_resume(
+    updates: schemas.ResumeUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Update user profile with data extracted from resume.
+    """
+    if updates.skills:
+        current_user.skills = ", ".join(updates.skills)
+    if updates.experience:
+        current_user.bio = updates.experience
+    # Note: You might want to add more fields to the User model for education
+    
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
 

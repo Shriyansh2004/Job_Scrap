@@ -11,6 +11,7 @@ class UserBase(BaseModel):
     bio: Optional[str] = None
     image_url: Optional[str] = None
     resume_url: Optional[str] = None
+    skills: Optional[str] = None  # Comma-separated skills
 
 
 class UserCreate(UserBase):
@@ -23,6 +24,7 @@ class UserUpdate(BaseModel):
     bio: Optional[str] = None
     image_url: Optional[str] = None
     resume_url: Optional[str] = None
+    skills: Optional[str] = None
 
 
 class UserOut(UserBase):
@@ -77,4 +79,26 @@ class JobSearchRequest(BaseModel):
 
 class JobSearchResponse(BaseModel):
     results: List[JobOut]
+
+
+# Resume Parser Schemas
+class ResumeParseResponse(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    mobile_number: Optional[str] = None
+    skills: List[str] = []
+    experience: List[str] = []
+    education: List[dict] = []
+    company_names: List[str] = []
+    college_name: Optional[str] = None
+    degree: Optional[str] = None
+    designation: Optional[str] = None
+    total_experience: Optional[float] = None
+
+
+class ResumeUpdateRequest(BaseModel):
+    """Request to update user profile with parsed resume data."""
+    skills: Optional[List[str]] = None
+    experience: Optional[str] = None
+    education: Optional[str] = None
 
