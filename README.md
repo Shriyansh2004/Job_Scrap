@@ -364,7 +364,3 @@ PostgreSQL
 AI Integration
 
 ---
-
-# License
-
-This project was created as an academic assignment and technical demonstration.
